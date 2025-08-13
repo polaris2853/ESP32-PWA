@@ -4,10 +4,37 @@
 #include <WebServer.h>
 #include <LittleFS.h>
 
-const char* ap_ssid = "ESP-WROOM-32";
+const char* ap_ssids[] = {
+    "ESP-WROOM-32",
+    "FBI Surveillance Van #11",
+    "NSA Drone Unit 7",
+    "Area 51 Security Camera"
+};
 const char* ap_pass = "66667777";
 
+const int num_ssids = 4; // Total number of SSIDs in the list
+int current_ssid_index = 0;
+
+// Time tracking variables for non-blocking SSID change
+unsigned long last_ssid_change = 0;
+const long ssid_change_interval = 300000; // Change every 5 minutes
+
 WebServer server(80);
+
+inline void rotateSSID() {
+    unsigned long current_time = millis();
+    if (current_time - last_ssid_change >= ssid_change_interval) {
+        last_ssid_change = current_time;
+
+        // Move to the next SSID in the list
+        current_ssid_index = (current_ssid_index + 1) % num_ssids;
+
+        // Restart the Access Point with the new SSID
+        WiFi.softAP(ap_ssids[current_ssid_index], ap_pass);
+        Serial.print("SSID changed to: ");
+        Serial.println(ap_ssids[current_ssid_index]);
+    }
+}
 
 inline void initFS() {
   if (!LittleFS.begin()) {
@@ -19,7 +46,7 @@ inline void initFS() {
 }
 
 inline void initWiFiAP() {
-  WiFi.softAP(ap_ssid, ap_pass);
+  WiFi.softAP(ap_ssids[current_ssid_index], ap_pass);
   Serial.print("AP IP: "); Serial.println(WiFi.softAPIP());
 }
 
@@ -33,7 +60,29 @@ inline void handleRoot() {
     server.send(500, "text/plain", "index.html missing on LittleFS");
   }
 }
+void handleCss() {
+  File file = LittleFS.open("/style.css", "r");
+  if (!file) {
+    server.send(404, "text/plain", "File not found");
+    return;
+  }
+  server.streamFile(file, "text/css");
+  file.close();
+}
 
+void handleJs() {
+  File file = LittleFS.open("/script.js", "r");
+  if (!file) {
+    server.send(404, "text/plain", "File not found");
+    return;
+  }
+  server.streamFile(file, "application/javascript");
+  file.close();
+}
+
+void handleNotFound() {
+  server.send(404, "text/plain", "Not found");
+}
 
 
 

@@ -12,37 +12,28 @@
 #define MATRIX_HEIGHT 7
 #define LED_TYPE   WS2812B
 #define COLOR_ORDER GRB
-#define BRIGHTNESS 20
+#define BRIGHTNESS 64
 
 // ===== Frame config =====
 #define FRAME_PIXELS 56
 #define MAX_FRAMES 120
 
-// ===== Extern declarations =====
+// ===== Declarations =====
 CRGB leds[NUM_LEDS];
 volatile bool playing = false;
 std::vector<std::array<CRGB, FRAME_PIXELS>> framesRam;
 TaskHandle_t playTask = NULL;
+static uint8_t hue = 0;
 
 // ===== Battery row =====
-const CRGB batteryRow[8] = {
-  CRGB(0x00,0xFF,0x00), CRGB(0x00,0xFF,0x00),
-  CRGB(0xFF,0xFF,0x00), CRGB(0xFF,0xFF,0x00),
-  CRGB(0xFF,0x50,0x00), CRGB(0xFF,0x50,0x00),
-  CRGB(0xFF,0x00,0x00), CRGB(0xFF,0x00,0x00)
+CRGB RGBRow[8] = {
+  CRGB(0x00,0x00,0x00), CRGB(0x00,0x00,0x00),
+  CRGB(0x00,0x00,0x00), CRGB(0x00,0x00,0x00),
+  CRGB(0x00,0x00,0x00), CRGB(0x00,0x00,0x00),
+  CRGB(0x00,0x00,0x00), CRGB(0x00,0x00,0x00)
 };
 
 // =====Serpentine layout/coordinate calculation =====
-// uint16_t XY(uint8_t x, uint8_t y) {
-//   // Check if the row is odd
-//   if (y % 2 == 1) {
-//     // If the row is odd, the data should be reversed
-//     return (y * MATRIX_WIDTH) + (MATRIX_WIDTH - 1 - x);
-//   } else {
-//     // If the row is even, the data flows left-to-right
-//     return (y * MATRIX_WIDTH) + x;
-//   }
-// }
 uint16_t XY(uint8_t x, uint8_t y) {
   // Check if the row is even (index 0, 2, 4, 6)
   if (y % 2 == 0) {
@@ -67,6 +58,14 @@ inline bool hexToCRGB(const char* hex, CRGB& out) {
 }
 
 // ===== LED Task =====
+inline void animateRGBRow(uint8_t inp) {
+    // FastLED's fill_rainbow function is a very efficient way to create a rainbow
+    fill_rainbow(RGBRow, 8, hue, 20);
+    Serial.println(hue);
+    hue += inp;
+}
+
+
 inline void playTaskFn(void* pvParameters) {
   while (true) {
     if (playing && framesRam.size() > 0) {
@@ -80,11 +79,8 @@ inline void playTaskFn(void* pvParameters) {
             leds[XY(x, y)] = framesRam[f][linearIndex];
           }
         }
-
-        for (uint8_t b = 0; b < 8; ++b) leds[FRAME_PIXELS + b] = batteryRow[b];
-        
         FastLED.show();
-        vTaskDelay(pdMS_TO_TICKS(200));
+        vTaskDelay(pdMS_TO_TICKS(100));
       }
     }
     else {
@@ -173,12 +169,39 @@ inline void handleInfo() {
   server.send(200, "application/json", s);
 }
 
+inline void handleBrightness() {
+  // Check if the 'value' argument exists in the request
+  if (server.hasArg("value")) {
+    // Get the value and convert it from a string to an integer
+    int brightness = server.arg("value").toInt();
+
+    // Clamp the value to the valid range of 0-255
+    if (brightness < 0) brightness = 0;
+    if (brightness > 255) brightness = 255;
+
+    // Set the new brightness
+    FastLED.setBrightness(brightness);
+    FastLED.show(); // Update the display immediately
+
+    // Send a success response back to the client
+    server.send(200, "text/plain", "Brightness set to: " + String(brightness));
+  } else {
+    // If the 'value' argument is missing, send an error
+    server.send(400, "text/plain", "Missing brightness value");
+  }
+}
+
 inline void initWebServer() {
   server.on("/", HTTP_GET, handleRoot);
+  server.on("/", HTTP_GET, handleRoot);
+  server.on("/style.css", HTTP_GET, handleCss);
+  server.on("/script.js", HTTP_GET, handleJs);
+  server.onNotFound(handleNotFound);
   server.on("/upload", HTTP_POST, handleUpload);
   server.on("/play", HTTP_GET, handlePlay);
   server.on("/stop", HTTP_GET, handleStop);
   server.on("/info", HTTP_GET, handleInfo);
+  server.on("/setBrightness", HTTP_GET, handleBrightness);
   server.begin();
   Serial.println("HTTP server started");
 }
@@ -235,7 +258,7 @@ inline void initLED() {
       leds[XY(x, y)] = CHSV(hue, 255, 255);
     }
   }
-  
+
   FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS);
   FastLED.setBrightness(BRIGHTNESS);
 }

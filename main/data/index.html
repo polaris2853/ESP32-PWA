@@ -4,85 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>8x8 LED Matrix Editor</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      background: #111;
-      color: #eee;
-      margin: 0;
-      padding: 2em;
-    }
-
-    .title {
-      margin-bottom: 1em;
-    }
-
-    #grid {
-      display: grid;
-      grid-template-columns: repeat(8, 30px);
-      grid-template-rows: repeat(8, 30px);
-      gap: 4px;
-      justify-content: center;
-      margin-bottom: 1em;
-    }
-
-    .pixel {
-      width: 30px;
-      height: 30px;
-      background-color: #000;
-      border: 1px solid #888;
-      cursor: pointer;
-    }
-
-    .controls {
-      margin: 1em 0;
-    }
-
-    #color {
-      margin-left: 0.5em;
-      vertical-align: middle;
-    }
-
-    .swatches {
-      margin-top: 0.5em;
-      display: flex;
-      justify-content: center;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-
-    .swatch {
-      width: 24px;
-      height: 24px;
-      border: 2px solid #333;
-      cursor: pointer;
-    }
-
-    textarea {
-      margin-top: 1em;
-      width: 260px;
-      max-width: 100%;
-      background: #222;
-      color: #eee;
-      border: 1px solid #555;
-      padding: 0.5em;
-      font-family: monospace;
-    }
-
-    button {
-      margin: 0.25em;
-      padding: 0.5em 1em;
-      background: #444;
-      color: #eee;
-      border: none;
-      cursor: pointer;
-    }
-
-      button:hover {
-        background: #666;
-      }
-  </style>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://unpkg.com/gifler"></script>
 </head>
 <body>
   <h1 class="title">ESP-WROOM-32 Matrix Controller</h1>
@@ -117,148 +40,15 @@
       <button id="export">Export All</button>
       <button id="clear">Clear</button>
     </div>
+    <div>
+      <label for="brightnessSlider">Brightness:</label>
+      <input type="range" min="0" max="255" value="64" class="slider" id="brightnessSlider">
+    </div>
+    <input type="file" id="imageInput" accept="image/*">
   </div>
 
   <textarea id="output" rows="8" cols="32" placeholder="Exported JSON will appear here..."></textarea>
 
-  <script>
-    const grid = document.getElementById("grid");
-    const colorInput = document.getElementById("color");
-    const output = document.getElementById("output");
-    const swatches = document.querySelectorAll(".swatch");
-    const frameLabel = document.getElementById("frameLabel");
-    let isPainting = false;
-
-    const pixels = [];
-    for (let i = 0; i < 56; i++) {
-      const pixel = document.createElement("div");
-      pixel.classList.add("pixel");
-      pixel.dataset.index = i;
-      pixel.addEventListener("mousedown", () => {
-        isPainting = true;
-        pixel.style.backgroundColor = colorInput.value;
-        saveFrame();
-      });
-      pixel.addEventListener("mouseover", () => {
-        if (isPainting) {
-          pixel.style.backgroundColor = colorInput.value;
-          saveFrame();
-        }
-      });
-      grid.appendChild(pixel);
-      pixels.push(pixel);
-    }
-
-    document.body.addEventListener("mouseup", () => {
-      isPainting = false;
-    });
-
-    swatches.forEach(swatch => {
-      swatch.addEventListener("click", () => {
-        const color = window.getComputedStyle(swatch).backgroundColor;
-        colorInput.value = rgbToHex(color);
-      });
-    });
-
-    function rgbToHex(rgb) {
-      const result = rgb.match(/\d+/g);
-      if (!result || result.length < 3) return "#000000";
-      return (
-        "#" +
-        result
-          .slice(0, 3)
-          .map(x => parseInt(x).toString(16).padStart(2, "0"))
-          .join("")
-      );
-    }
-
-    // Frame Management
-    let frames = [Array(56).fill("#000000")];
-    let currentFrame = 0;
-    let interval = null;
-
-    function renderFrame(index) {
-      if (!frames[index]) return;
-      frames[index].forEach((color, i) => {
-        pixels[i].style.backgroundColor = color;
-      });
-      frameLabel.textContent = `Frame ${index + 1}`;
-    }
-
-    function saveFrame() {
-      frames[currentFrame] = pixels.map(p => rgbToHex(p.style.backgroundColor));
-    }
-
-    function clearGrid() {
-      pixels.forEach(p => (p.style.backgroundColor = "#000000"));
-    }
-
-    document.getElementById("prev").addEventListener("click", () => {
-      if (currentFrame > 0) {
-        saveFrame();
-        currentFrame--;
-        renderFrame(currentFrame);
-      }
-    });
-
-    document.getElementById("next").addEventListener("click", () => {
-      if (currentFrame < frames.length - 1) {
-        saveFrame();
-        currentFrame++;
-        renderFrame(currentFrame);
-      }
-    });
-
-    document.getElementById("add").addEventListener("click", () => {
-      saveFrame();
-      frames.push(Array(64).fill("#000000"));
-      currentFrame = frames.length - 1;
-      renderFrame(currentFrame);
-    });
-
-    document.getElementById("delete").addEventListener("click", () => {
-      if (frames.length > 1) {
-        frames.splice(currentFrame, 1);
-        currentFrame = Math.max(0, currentFrame - 1);
-        renderFrame(currentFrame);
-      }
-    });
-
-    document.getElementById("clear").addEventListener("click", () => {
-      clearGrid();
-      saveFrame();
-    });
-
-    document.getElementById("export").addEventListener("click", () => {
-      saveFrame();
-      output.value = JSON.stringify(frames, null, 2);
-
-      fetch('/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(frames) // no pretty-print, just raw JSON
-      })
-        .then(res => res.text())
-        .then(text => console.log('Server says:', text))
-        .catch(err => console.error('Upload failed:', err));
-    });
-
-    document.getElementById("play").addEventListener("click", () => {
-      let i = 0;
-      saveFrame();
-      if (interval) clearInterval(interval);
-      interval = setInterval(() => {
-        renderFrame(i);
-        i = (i + 1) % frames.length;
-      }, 200);
-    });
-
-    document.getElementById("stop").addEventListener("click", () => {
-      clearInterval(interval);
-      interval = null;
-    });
-
-    renderFrame(currentFrame);
-  </script>
+  <script src="script.js"></script>
 </body>
 </html>
