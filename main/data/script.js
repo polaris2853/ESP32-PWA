@@ -158,6 +158,22 @@ document.getElementById("stop").addEventListener("click", () => {
   interval = null; // Reset the interval variable.
 });
 
+// Last Session button: load the last session saved in saved.json
+document.getElementById("loadLastSave").addEventListener("click", () => {
+  fetch('/loadLastAni', {
+    method: 'GET'
+  })
+    .then(response => response.text())
+    .then(data => {
+      console.log('Server response:', data);
+      alert('Last saved animation loaded on ESP32!');
+    })
+    .catch((error) => {
+      console.error('Error:', error);
+      alert('Failed to load last saved animation.');
+    });
+});
+
 // Initial render: display the very first frame when the page loads.
 renderFrame(currentFrame);
 
@@ -212,44 +228,68 @@ function handleImageUpload(event) {
   }
 }
 
+// This function processes a single frame from a GIF.
+// It takes the raw frame data (a buffer) and returns a promise.
 function processFrame(frameBuffer) {
+  // A Promise is used because creating and loading an image from raw data
+  // is an asynchronous operation.
   return new Promise((resolve) => {
+    // We create an in-memory canvas element to manipulate the image.
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     canvas.width = 8;
     canvas.height = 8;
 
     const img = new Image();
+
+    // The onload event ensures the code runs only after the image is fully loaded.
     img.onload = function () {
+      // Draw the image onto our 8x8 canvas, resizing it to fit.
       ctx.drawImage(img, 0, 0, 8, 8);
+
+      // Get the pixel data from the canvas. This returns a large array of R, G, B, A values.
       const imageData = ctx.getImageData(0, 0, 8, 8);
       const pixelData = imageData.data;
 
       const frameHexColors = [];
+      // Loop through the pixel data, skipping the alpha channel (i += 4).
       for (let i = 0; i < pixelData.length; i += 4) {
         const r = pixelData[i];
         const g = pixelData[i + 1];
         const b = pixelData[i + 2];
+
+        // Helper function to convert a color component to a two-digit hex string.
         const toHex = (c) => c.toString(16).padStart(2, '0');
+
+        // Push the formatted hex color string (e.g., "#ff0000") to the array.
         frameHexColors.push(`#${toHex(r)}${toHex(g)}${toHex(b)}`);
       }
+      // Resolve the promise with the final array of hex colors for this frame.
       resolve(frameHexColors);
     };
+
+    // Set the image source using the raw frame buffer data, encoded in base64.
     img.src = 'data:image/png;base64,' + btoa(String.fromCharCode.apply(null, new Uint8Array(frameBuffer)));
   });
 }
 
+// This function is for processing a single, static image (like a JPG or PNG).
+// It takes an already loaded Image object as its input.
 function processImage(img) {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
   canvas.width = 8;
   canvas.height = 8;
 
+  // Draw the loaded image onto our 8x8 canvas, resizing it to fit.
   ctx.drawImage(img, 0, 0, 8, 8);
+
+  // Get the pixel data from the canvas.
   const imageData = ctx.getImageData(0, 0, 8, 8);
   const pixelData = imageData.data;
 
   const frameHexColors = [];
+  // Loop through the pixel data, skipping the alpha channel (i += 4).
   for (let i = 0; i < pixelData.length; i += 4) {
     const r = pixelData[i];
     const g = pixelData[i + 1];
@@ -257,25 +297,34 @@ function processImage(img) {
     const toHex = (c) => c.toString(16).padStart(2, '0');
     frameHexColors.push(`#${toHex(r)}${toHex(g)}${toHex(b)}`);
   }
+
+  // Return the final array of hex colors for this single-frame image.
   return frameHexColors;
 }
 
+// This function is responsible for sending the processed frames to the ESP32 server.
 function uploadFrames(frames) {
+  // Convert the array of frames into a JSON string.
   const jsonData = JSON.stringify(frames);
   const outputElement = document.getElementById('output');
+
+  // Display the formatted JSON in the textarea for the user to see.
   outputElement.value = JSON.stringify(frames, null, 2);
 
+  // Use the Fetch API to send a POST request to the ESP32's /upload endpoint.
   fetch('/upload', {
     method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
+    headers: { 'Content-Type': 'text/plain' }, // Tell the server we are sending plain text.
     body: jsonData
   })
     .then(response => response.text())
     .then(data => {
+      // Log the server's response to the console.
       console.log('Server response:', data);
       alert('Animation uploaded!');
     })
     .catch((error) => {
+      // Catch and report any network or fetch-related errors.
       console.error('Error:', error);
       alert('Failed to upload animation.');
     });

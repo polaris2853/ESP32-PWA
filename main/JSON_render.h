@@ -159,7 +159,90 @@ inline void handleUpload() {
   interrupts();
 
   playing = true;
-  server.send(200, "text/plain", "Uploaded and playing");
+  
+  // Overwrite the saved.json file with the new animation data
+  File file = LittleFS.open("/saved.json", "w");
+  if (!file) {
+    //
+  } else {
+    file.print(payload);
+    file.close();
+  }
+
+  server.send(200, "text/plain", "Animation uploaded and saved successfully!");
+}
+
+// void loadLastSaveFile() {
+//   if (LittleFS.exists("/saved.json")) {
+//     File file = LittleFS.open("/saved.json", "r");
+//     if (!file) {
+//       return;
+//     }
+
+//     StaticJsonDocument<20480> doc; // Adjust size if needed
+//     DeserializationError error = deserializeJson(doc, file);
+//     file.close();
+
+//     if (error) {
+//       Serial.print(F("deserializeJson() failed: "));
+//       Serial.println(error.f_str());
+//       return;
+//     }
+
+//     framesRam.clear();
+//     JsonArray framesArray = doc.as<JsonArray>();
+
+//     for (JsonObject frameJson : framesArray) {
+//       std::vector<CRGB> currentFrame;
+//       for (const char* hexColor : frameJson.as<JsonArray>()) {
+//         long hexValue = strtol(hexColor + 1, NULL, 16);
+//         currentFrame.push_back(CRGB(hexValue));
+//       }
+//       framesRam.push_back(currentFrame);
+//     }
+//   } else {
+//     return;
+//   }
+// }
+
+void handleSaveFile() {
+  if (LittleFS.exists("/saved.json")) {
+    File file = LittleFS.open("/saved.json", "r");
+    if (!file) {
+      Serial.println("Failed to open saved.json");
+      return;
+    }
+
+    StaticJsonDocument<48000> doc;
+    DeserializationError error = deserializeJson(doc, file);
+    file.close();
+
+    if (error) {
+      Serial.print(F("deserializeJson() failed: "));
+      Serial.println(error.f_str());
+      return;
+    }
+
+    JsonArray framesArray = doc.as<JsonArray>();
+
+    // Check if the number of frames exceeds the maximum limit
+    if (framesArray.size() > MAX_FRAMES) {
+      // You might choose to return or load a default animation here
+      return; 
+    }
+
+    framesRam.clear();
+    for (JsonObject frameJson : framesArray) {
+      std::vector<CRGB> currentFrame;
+      for (const char* hexColor : frameJson.as<JsonArray>()) {
+        long hexValue = strtol(hexColor + 1, NULL, 16);
+        currentFrame.push_back(CRGB(hexValue));
+      }
+      framesRam.push_back(currentFrame);
+    }
+  } else {
+    return;
+  }
 }
 
 inline void handlePlay() { playing = true; server.send(200, "text/plain", "Playing"); }
