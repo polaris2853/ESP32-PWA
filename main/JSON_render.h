@@ -165,7 +165,7 @@ inline void handleUpload() {
   if (!file) {
     //
   } else {
-    file.print(payload);
+    file.print(body);
     file.close();
   }
 
