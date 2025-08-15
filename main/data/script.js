@@ -1,3 +1,4 @@
+
 // --- DOM Element Selection ---
 // Get references to key HTML elements for user interaction and output.
 const grid = document.getElementById("grid");
@@ -159,7 +160,7 @@ document.getElementById("stop").addEventListener("click", () => {
 });
 
 // Last Session button: load the last session saved in saved.json
-document.getElementById("loadLastSave").addEventListener("click", () => {
+document.getElementById("loadLastAni").addEventListener("click", () => {
   fetch('/loadLastAni', {
     method: 'GET'
   })
@@ -190,29 +191,27 @@ document.getElementById('brightnessSlider').addEventListener('change', function 
 
 // Converting images to 8x8 grid to put on the matrix
 document.getElementById('imageInput').addEventListener('change', handleImageUpload);
-
 function handleImageUpload(event) {
   const file = event.target.files[0];
-  if (!file) return;
+  if (!file) return;;
 
   const reader = new FileReader();
 
   if (file.type === 'image/gif') {
     reader.onload = function (e) {
-      const gifData = e.target.result;
-      const allFrames = [];
 
-      gifler(gifData).frames(async (context, frame, i) => {
-        // Use the frame data and existing logic to convert to an 8x8 hex array
-        const frameData = await processFrame(frame.buffer);
-        allFrames.push(frameData);
+      const arrayBuffer = e.target.result;
+      const buffer = new Uint8Array(arrayBuffer);
+      const gifReader = new omggif.GifReader(buffer);
 
-        // Check if all frames have been processed
-        if (i === gif.frames.length - 1) {
-          uploadFrames(allFrames);
-        }
-      });
+      const decodedFrames = processGifFrames(gifReader);
+      uploadFrames(decodedFrames);
     };
+
+    reader.onerror = function (e) {
+      alert(Error);
+    };
+
     reader.readAsArrayBuffer(file);
   } else {
     // Existing static image logic
@@ -227,50 +226,57 @@ function handleImageUpload(event) {
     reader.readAsDataURL(file);
   }
 }
+//This function is for processing a GIF
+function processGifFrames(gifReader) {
+  const allFrameHexColors = [];
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = 8;
+  canvas.height = 7;
 
-// This function processes a single frame from a GIF.
-// It takes the raw frame data (a buffer) and returns a promise.
-function processFrame(frameBuffer) {
-  // A Promise is used because creating and loading an image from raw data
-  // is an asynchronous operation.
-  return new Promise((resolve) => {
-    // We create an in-memory canvas element to manipulate the image.
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = 8;
-    canvas.height = 8;
+  const gifWidth = gifReader.width;
+  const gifHeight = gifReader.height;
 
-    const img = new Image();
+  // Create a buffer for the entire GIF frame
+  const frameBuffer = new Uint8ClampedArray(gifWidth * gifHeight * 4);
 
-    // The onload event ensures the code runs only after the image is fully loaded.
-    img.onload = function () {
-      // Draw the image onto our 8x8 canvas, resizing it to fit.
-      ctx.drawImage(img, 0, 0, 8, 8);
+  for (let i = 0; i < gifReader.numFrames(); i++) {
+    // Decode the current frame's pixel data into the buffer
+    gifReader.decodeAndBlitFrameRGBA(i, frameBuffer);
 
-      // Get the pixel data from the canvas. This returns a large array of R, G, B, A values.
-      const imageData = ctx.getImageData(0, 0, 8, 8);
-      const pixelData = imageData.data;
+    // Create an ImageData object from the decoded data
+    const imageData = new ImageData(frameBuffer, gifWidth, gifHeight);
 
-      const frameHexColors = [];
-      // Loop through the pixel data, skipping the alpha channel (i += 4).
-      for (let i = 0; i < pixelData.length; i += 4) {
-        const r = pixelData[i];
-        const g = pixelData[i + 1];
-        const b = pixelData[i + 2];
+    // Draw this frame onto our small 8x8 canvas, which resizes it
+    ctx.clearRect(0, 0, 8, 7); // Clear the canvas before drawing
+    // The imageData object cannot be drawn directly, so we create a temporary canvas to draw it
+    const tempCanvas = document.createElement('canvas');
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCanvas.width = gifWidth;
+    tempCanvas.height = gifHeight;
+    tempCtx.putImageData(imageData, 0, 0);
 
-        // Helper function to convert a color component to a two-digit hex string.
-        const toHex = (c) => c.toString(16).padStart(2, '0');
+    // Now draw the tempCanvas content to our 8x8 canvas
+    ctx.drawImage(tempCanvas, 0, 0, 8, 7);
 
-        // Push the formatted hex color string (e.g., "#ff0000") to the array.
-        frameHexColors.push(`#${toHex(r)}${toHex(g)}${toHex(b)}`);
-      }
-      // Resolve the promise with the final array of hex colors for this frame.
-      resolve(frameHexColors);
-    };
+    // Get the pixel data from the 8x8 canvas
+    const smallImageData = ctx.getImageData(0, 0, 8, 7);
+    const pixelData = smallImageData.data;
 
-    // Set the image source using the raw frame buffer data, encoded in base64.
-    img.src = 'data:image/png;base64,' + btoa(String.fromCharCode.apply(null, new Uint8Array(frameBuffer)));
-  });
+    const frameHexColors = [];
+    for (let j = 0; j < pixelData.length; j += 4) {
+      const r = pixelData[j];
+      const g = pixelData[j + 1];
+      const b = pixelData[j + 2];
+      const toHex = (c) => c.toString(16).padStart(2, '0');
+      frameHexColors.push(`#${toHex(r)}${toHex(g)}${toHex(b)}`);
+    }
+
+    // Store the result for this frame
+    allFrameHexColors.push(frameHexColors);
+  }
+
+  return allFrameHexColors;
 }
 
 // This function is for processing a single, static image (like a JPG or PNG).

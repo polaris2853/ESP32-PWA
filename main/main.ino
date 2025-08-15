@@ -12,10 +12,6 @@ void setup() {
   initWebServer();
   startPlayTask();
   
-  // Set up the initial Access Point with the first SSID
-  
-
-  // Iterate through each frame in the framesRam vector
   for (size_t f = 0; f < framesRam.size(); ++f) {
     // Draw the current frame
     for (int y = 0; y < MATRIX_HEIGHT; y++) {
@@ -26,13 +22,13 @@ void setup() {
         leds[XY(x, y)] = framesRam[f][linearIndex];
       }
     }
-    animateRGBRow(10);
-    for (int b = 0; b < 8; ++b) leds[FRAME_PIXELS + b] = RGBRow[b];
-    FastLED.show();
-    vTaskDelay(pdMS_TO_TICKS(150)); // Delay to see the frame
+  animateRGBRow(10);
+  for (int b = 0; b < 8; ++b) leds[FRAME_PIXELS + b] = RGBRow[b];
+  FastLED.show();
+  vTaskDelay(pdMS_TO_TICKS(150)); // Delay to see the frame
   }
 }
-
+  
 void loop() {
   animateRGBRow(1);
   for (int b = 0; b < 8; ++b) leds[FRAME_PIXELS + b] = RGBRow[b];
@@ -40,5 +36,4 @@ void loop() {
   server.handleClient();
   // Check if it's time to rotate the SSID
   rotateSSID();
-
 }

@@ -23,7 +23,6 @@ CRGB leds[NUM_LEDS];
 volatile bool playing = false;
 std::vector<std::array<CRGB, FRAME_PIXELS>> framesRam;
 TaskHandle_t playTask = NULL;
-static uint8_t hue = 0;
 
 // ===== Battery row =====
 CRGB RGBRow[8] = {
@@ -60,8 +59,8 @@ inline bool hexToCRGB(const char* hex, CRGB& out) {
 // ===== LED Task =====
 inline void animateRGBRow(uint8_t inp) {
     // FastLED's fill_rainbow function is a very efficient way to create a rainbow
+    static uint8_t hue = 0;
     fill_rainbow(RGBRow, 8, hue, 20);
-    Serial.println(hue);
     hue += inp;
 }
 
@@ -99,7 +98,17 @@ inline void handleUpload() {
 	respondText(405, "Method not allowed - use POST");
 	return;
   }
+  
   String body = server.arg("plain");
+  // Overwrite the saved.json file with the new animation data
+  File file = LittleFS.open("/saved.json", "w");
+  if (!file) {
+    Serial.println("Failed to open saved.json for writing");
+  } else {
+    file.print(body);
+    file.close();
+    Serial.println("Animation saved to /saved.json");
+  }
   if (body.length() == 0) {
 	respondText(400, "Empty body");
 	return;
@@ -159,90 +168,74 @@ inline void handleUpload() {
   interrupts();
 
   playing = true;
-  
-  // Overwrite the saved.json file with the new animation data
-  File file = LittleFS.open("/saved.json", "w");
-  if (!file) {
-    //
-  } else {
-    file.print(payload);
-    file.close();
-  }
-
   server.send(200, "text/plain", "Animation uploaded and saved successfully!");
 }
 
-// void loadLastSaveFile() {
-//   if (LittleFS.exists("/saved.json")) {
-//     File file = LittleFS.open("/saved.json", "r");
-//     if (!file) {
-//       return;
-//     }
-
-//     StaticJsonDocument<20480> doc; // Adjust size if needed
-//     DeserializationError error = deserializeJson(doc, file);
-//     file.close();
-
-//     if (error) {
-//       Serial.print(F("deserializeJson() failed: "));
-//       Serial.println(error.f_str());
-//       return;
-//     }
-
-//     framesRam.clear();
-//     JsonArray framesArray = doc.as<JsonArray>();
-
-//     for (JsonObject frameJson : framesArray) {
-//       std::vector<CRGB> currentFrame;
-//       for (const char* hexColor : frameJson.as<JsonArray>()) {
-//         long hexValue = strtol(hexColor + 1, NULL, 16);
-//         currentFrame.push_back(CRGB(hexValue));
-//       }
-//       framesRam.push_back(currentFrame);
-//     }
-//   } else {
-//     return;
-//   }
-// }
-
-void handleSaveFile() {
-  if (LittleFS.exists("/saved.json")) {
-    File file = LittleFS.open("/saved.json", "r");
-    if (!file) {
-      Serial.println("Failed to open saved.json");
-      return;
-    }
-
-    StaticJsonDocument<48000> doc;
-    DeserializationError error = deserializeJson(doc, file);
-    file.close();
-
-    if (error) {
-      Serial.print(F("deserializeJson() failed: "));
-      Serial.println(error.f_str());
-      return;
-    }
-
-    JsonArray framesArray = doc.as<JsonArray>();
-
-    // Check if the number of frames exceeds the maximum limit
-    if (framesArray.size() > MAX_FRAMES) {
-      // You might choose to return or load a default animation here
-      return; 
-    }
-
-    framesRam.clear();
-    for (JsonObject frameJson : framesArray) {
-      std::vector<CRGB> currentFrame;
-      for (const char* hexColor : frameJson.as<JsonArray>()) {
-        long hexValue = strtol(hexColor + 1, NULL, 16);
-        currentFrame.push_back(CRGB(hexValue));
-      }
-      framesRam.push_back(currentFrame);
-    }
-  } else {
+inline void handleSaveFile() {
+  if (!LittleFS.exists("/saved.json")) {
+    Serial.println("No saved.json on LittleFS");
     return;
   }
+  
+  File f = LittleFS.open("/saved.json", "r");
+  if (!f) {
+    Serial.println("saved.json open failed");
+    return; 
+  }
+  
+  String js = f.readString();
+  f.close();
+  Serial.println(js);
+
+  // Calculate the required memory size
+  size_t cap = js.length() * 1.5 + 1024;
+  DynamicJsonDocument doc(cap);
+  
+  if (deserializeJson(doc, js)) {
+    Serial.println("saved.json parse failed");
+    return;
+  }
+  
+  if (!doc.is<JsonArray>()) {
+    Serial.println("saved.json is not a valid JSON array");
+    return;
+  }
+  
+  JsonArray arr = doc.as<JsonArray>();
+
+  if (arr.size() > MAX_FRAMES) {
+    Serial.println("Error: Saved animation exceeds MAX_FRAMES limit.");
+    return;
+  }
+
+  // Create a temporary vector to store the new frames
+  std::vector<std::array<CRGB, FRAME_PIXELS>> tmp;
+  tmp.reserve(arr.size());
+  
+  // Iterate through the main array
+  for (JsonVariant v : arr) {
+    if (!v.is<JsonArray>()) continue;
+    JsonArray pix = v.as<JsonArray>();
+    
+    // Check if the inner array size is correct (56 pixels)
+    if (pix.size() != FRAME_PIXELS) continue;
+    
+    std::array<CRGB, FRAME_PIXELS> frameColors;
+    for (uint16_t i = 0; i < FRAME_PIXELS; ++i) {
+      const char* hex = pix[i];
+      CRGB c;
+      if (!hexToCRGB(hex, c)) c = CRGB::Black;
+      frameColors[i] = c;
+    }
+    tmp.push_back(frameColors);
+  }
+  
+  if (!tmp.empty()) {
+    framesRam.swap(tmp);
+    Serial.printf("Loaded %u frames from saved.json\n", (uint32_t)framesRam.size());
+  server.send(200, "text/plain", "Animation loaded successfully!");
+  }
+  playing = true;
 }
 
 inline void handlePlay() { playing = true; server.send(200, "text/plain", "Playing"); }
@@ -263,6 +256,7 @@ inline void handleBrightness() {
     if (brightness > 255) brightness = 255;
 
     // Set the new brightness
+    Serial.println(brightness);
     FastLED.setBrightness(brightness);
     FastLED.show(); // Update the display immediately
 
@@ -274,17 +268,36 @@ inline void handleBrightness() {
   }
 }
 
+void handleListFiles() {
+  String output = "Files on LittleFS:<br>";
+  File root = LittleFS.open("/");
+  File file = root.openNextFile();
+
+  while (file) {
+    output += file.name();
+    output += " - ";
+    output += file.size();
+    output += " bytes<br>";
+    file = root.openNextFile();
+  }
+  server.send(200, "text/html", output);
+}
+
 inline void initWebServer() {
   server.on("/", HTTP_GET, handleRoot);
   server.on("/", HTTP_GET, handleRoot);
   server.on("/style.css", HTTP_GET, handleCss);
+  server.on("/omggif.js", HTTP_GET, handleOMGGIF);
   server.on("/script.js", HTTP_GET, handleJs);
+  
   server.onNotFound(handleNotFound);
   server.on("/upload", HTTP_POST, handleUpload);
   server.on("/play", HTTP_GET, handlePlay);
   server.on("/stop", HTTP_GET, handleStop);
   server.on("/info", HTTP_GET, handleInfo);
   server.on("/setBrightness", HTTP_GET, handleBrightness);
+  server.on("/loadLastAni", HTTP_GET, handleSaveFile);
+  server.on("/listfiles", HTTP_GET, handleListFiles);
   server.begin();
   Serial.println("HTTP server started");
 }

@@ -22,18 +22,19 @@ const long ssid_change_interval = 900000; // Change every 15 minutes
 WebServer server(80);
 
 inline void rotateSSID() {
-    unsigned long current_time = millis();
-    if (current_time - last_ssid_change >= ssid_change_interval) {
-        last_ssid_change = current_time;
+  unsigned long current_time = millis();
+  if (current_time - last_ssid_change >= ssid_change_interval) {
+      last_ssid_change = current_time;
 
-        // Move to the next SSID in the list
-        current_ssid_index = (current_ssid_index + 1) % num_ssids;
+      // Move to the next SSID in the list
+      current_ssid_index = (current_ssid_index + 1) % num_ssids;
 
-        // Restart the Access Point with the new SSID
-        WiFi.softAP(ap_ssids[current_ssid_index], ap_pass);
-        Serial.print("SSID changed to: ");
-        Serial.println(ap_ssids[current_ssid_index]);
-    }
+      // Restart the Access Point with the new SSID
+      WiFi.softAP(ap_ssids[current_ssid_index], ap_pass);
+      Serial.print("SSID changed to: ");
+      Serial.println(ap_ssids[current_ssid_index]);
+      vTaskDelay(pdMS_TO_TICKS(150));
+  }
 }
 
 inline void initFS() {
@@ -72,6 +73,16 @@ void handleCss() {
 
 void handleJs() {
   File file = LittleFS.open("/script.js", "r");
+  if (!file) {
+    server.send(404, "text/plain", "File not found");
+    return;
+  }
+  server.streamFile(file, "application/javascript");
+  file.close();
+}
+
+void handleOMGGIF() {
+  File file = LittleFS.open("/omggif.js", "r");
   if (!file) {
     server.send(404, "text/plain", "File not found");
     return;
