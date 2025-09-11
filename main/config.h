@@ -17,7 +17,7 @@ int current_ssid_index = 0;
 
 // Time tracking variables for non-blocking SSID change
 unsigned long last_ssid_change = 0;
-const long ssid_change_interval = 900000; // Change every 15 minutes
+const long ssid_change_interval = 600000; // Change every 10 minutes
 
 WebServer server(80);
 
