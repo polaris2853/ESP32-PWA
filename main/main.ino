@@ -26,5 +26,5 @@ void loop() {
   server.handleClient();
   // Check if it's time to rotate the SSID
   rotateSSID();
-    //
+  delay(1);
 }
