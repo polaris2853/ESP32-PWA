@@ -72,12 +72,15 @@ inline void handleCss() {
 
 inline void handleJs() {
   File file = LittleFS.open("/script.js", "r");
-  if (!file) {
+  File file2 = LittleFS.open("/stopwatch.js", "r");
+  if (!file || !file2) {
     server.send(404, "text/plain", "File not found");
     return;
   }
   server.streamFile(file, "application/javascript");
+  server.streamFile(file, "application/javascript");
   file.close();
+  file2.close();
 }
 
 inline void handleOMGGIF() {
