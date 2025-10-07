@@ -4,7 +4,7 @@
 #include <WebServer.h>
 #include <LittleFS.h>
 //---------------------------------------------------
-static unsigned long bootTime = millis();
+static unsigned long bootTime = 0;
 
 const char* ap_ssids[] = {
     "ESP-WROOM-32",
@@ -72,15 +72,12 @@ inline void handleCss() {
 
 inline void handleJs() {
   File file = LittleFS.open("/script.js", "r");
-  File file2 = LittleFS.open("/stopwatch.js", "r");
-  if (!file || !file2) {
+  if (!file) {
     server.send(404, "text/plain", "File not found");
     return;
   }
   server.streamFile(file, "application/javascript");
-  server.streamFile(file, "application/javascript");
   file.close();
-  file2.close();
 }
 
 inline void handleOMGGIF() {
@@ -93,10 +90,19 @@ inline void handleOMGGIF() {
   file.close();
 }
 
-void handleNotFound() {
+inline void handleNotFound() {
   server.send(404, "text/plain", "Not found");
 } 
 
+inline void handleStopWatch() {
+  File file = LittleFS.open("/stopwatch.js", "r");
+  if (!file) {
+    server.send(404, "text/plain", "File not found");
+    return;
+  }
+  server.streamFile(file, "application/javascript");
+  file.close();
+}
 inline void handleUptime() {
 	unsigned long uptimeSeconds = (millis() - bootTime) / 1000;
 	String jsonResponse = "{\"uptime\":" + String(uptimeSeconds) + "}";

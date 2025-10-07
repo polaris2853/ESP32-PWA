@@ -1,5 +1,5 @@
 // Function to fetch uptime from ESP and start the stopwatch
-function initializeStopwatch() {
+function initStopWatch() {
     // 1. Fetch the data from the /uptime endpoint
     fetch("/uptime")
         .then(response => response.json()) // Expect JSON
@@ -22,4 +22,4 @@ function initializeStopwatch() {
 
 
 // Call the function to begin the process when the page loads
-initializeStopwatch();
+setInterval(initStopWatch, 1000);
