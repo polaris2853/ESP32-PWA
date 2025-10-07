@@ -2,12 +2,12 @@
 function initializeStopwatch() {
     // 1. Fetch the data from the /uptime endpoint
     fetch("/uptime")
-        .then(response => response.text())
+        .then(response => response.json()) // Expect JSON
         .then(uptimeSeconds => {
             // 4. Update the content of the HTML element
             const displayElement = document.getElementById("display");
             if (displayElement) {
-                displayElement.textContent = uptimeSeconds;
+                displayElement.textContent = uptimeSeconds.uptime;
             }
         })
         .catch(error => {

@@ -98,8 +98,11 @@ void handleNotFound() {
 } 
 
 inline void handleUptime() {
-  unsigned long uptimeSeconds = (millis() - bootTime) / 1000;
-  server.send(200, "text/plain", String(uptimeSeconds));
+	unsigned long uptimeSeconds = (millis() - bootTime) / 1000;
+	String jsonResponse = "{\"uptime\":" + String(uptimeSeconds) + "}";
+
+	// Change MIME type from "text/plain" to "application/json"
+	server.send(200, "application/json", jsonResponse);
 }
 
 
