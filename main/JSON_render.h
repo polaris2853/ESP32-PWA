@@ -307,6 +307,7 @@ inline void initWebServer() {
   server.on("/omggif.js", HTTP_GET, handleOMGGIF);
   server.on("/script.js", HTTP_GET, handleJs);
   server.on("/stopwatch.js", HTTP_GET, handleStopWatch);
+  server.on("/ram", HTTP_GET, handleRam);
   server.on("/uptime", HTTP_GET, handleUptime);
   server.onNotFound(handleNotFound);
   server.on("/upload", HTTP_POST, handleUpload);

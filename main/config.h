@@ -1,10 +1,15 @@
-/* This initializes the Acess Point and LittleFS*/
+/* This initializes the Acess Point and LittleFS */
 
 #include <WiFi.h>
 #include <WebServer.h>
 #include <LittleFS.h>
 //---------------------------------------------------
 static unsigned long bootTime = 0;
+
+uint32_t getFreeRAM() {
+	// The simplest function for the total free heap
+	return ESP.getFreeHeap();
+}
 
 const char* ap_ssids[] = {
     "ESP-WROOM-32",
@@ -111,5 +116,9 @@ inline void handleUptime() {
 	server.send(200, "application/json", jsonResponse);
 }
 
+inline void handleRam() {
+	String ram = String(getFreeRAM());
+	server.send(200, "text/plain", ram);
+}
 
 

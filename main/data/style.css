@@ -1,77 +1,104 @@
 ﻿body {
-  font-family: sans-serif;
-  text-align: center;
-  background: #111;
-  color: #eee;
-  margin: 0;
-  padding: 2em;
+	font-family: sans-serif;
+	text-align: center;
+	background: #111;
+	color: #eee;
+	margin: 0;
+	padding: 2em;
 }
 
 .title {
-  margin-bottom: 1em;
+	margin-bottom: 1em;
 }
 
 #grid {
-  display: grid;
-  grid-template-columns: repeat(8, 30px);
-  grid-template-rows: repeat(8, 30px);
-  gap: 4px;
-  justify-content: center;
-  margin-bottom: 1em;
+	display: grid;
+	grid-template-columns: repeat(8, 30px);
+	grid-template-rows: repeat(8, 30px);
+	gap: 4px;
+	justify-content: center;
+	margin-bottom: 1em;
 }
 
 .pixel {
-  width: 30px;
-  height: 30px;
-  background-color: #000;
-  border: 1px solid #888;
-  cursor: pointer;
+	width: 30px;
+	height: 30px;
+	background-color: #000;
+	border: 1px solid #888;
+	cursor: pointer;
 }
 
 .controls {
-  margin: 1em 0;
+	margin: 1em 0;
 }
 
 #color {
-  margin-left: 0.5em;
-  vertical-align: middle;
+	margin-left: 0.5em;
+	vertical-align: middle;
 }
 
 .swatches {
-  margin-top: 0.5em;
-  display: flex;
-  justify-content: center;
-  gap: 6px;
-  flex-wrap: wrap;
+	margin-top: 0.5em;
+	display: flex;
+	justify-content: center;
+	gap: 6px;
+	flex-wrap: wrap;
 }
 
 .swatch {
-  width: 24px;
-  height: 24px;
-  border: 2px solid #333;
-  cursor: pointer;
+	width: 24px;
+	height: 24px;
+	border: 2px solid #333;
+	cursor: pointer;
 }
 
 textarea {
-  margin-top: 1em;
-  width: 260px;
-  max-width: 100%;
-  background: #222;
-  color: #eee;
-  border: 1px solid #555;
-  padding: 0.5em;
-  font-family: monospace;
+	margin-top: 1em;
+	width: 260px;
+	max-width: 100%;
+	background: #222;
+	color: #eee;
+	border: 1px solid #555;
+	padding: 0.5em;
+	font-family: monospace;
 }
 
 button {
-  margin: 0.25em;
-  padding: 0.5em 1em;
-  background: #444;
-  color: #eee;
-  border: none;
-  cursor: pointer;
+	margin: 0.25em;
+	padding: 0.5em 1em;
+	background: #444;
+	color: #eee;
+	border: none;
+	cursor: pointer;
 }
 
-  button:hover {
-    background: #666;
-  }
+button:hover {
+	background: #666;
+}
+
+.stopwatch-container {
+	/* Ensures everything inside stays on one line */
+	white-space: nowrap;
+	font-family: monospace;
+	font-size: 16px;
+	padding: 10px;
+}
+
+.label {
+	/* Makes the labels stand out */
+	font-weight: bold;
+	color: #555; /* Dark gray color */
+	margin-right: 5px;
+}
+
+#uptime-display, #ram-display {
+	/* Emphasize the actual numbers */
+	color: #007bff; /* Blue */
+	padding: 0 5px;
+}
+
+.separator {
+	/* Adds spacing around the separator */
+	margin: 0 15px;
+	color: #ccc; /* Light gray */
+}
