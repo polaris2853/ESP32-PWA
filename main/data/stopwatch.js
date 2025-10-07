@@ -2,15 +2,7 @@
 function initializeStopwatch() {
     // 1. Fetch the data from the /uptime endpoint
     fetch("/uptime")
-        .then(response => {
-            // 2. Ensure the response is OK (HTTP 200)
-            if (!response.ok) {
-                // Throw an error if the server response is bad
-                throw new Error('Network response was not ok');
-            }
-            // 3. Extract the response body as text
-            return response.text(); 
-        })
+        .then(response => response.text())
         .then(uptimeSeconds => {
             // 4. Update the content of the HTML element
             const displayElement = document.getElementById("display");
