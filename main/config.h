@@ -3,8 +3,7 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <LittleFS.h>
-
-
+//---------------------------------------------------
 static unsigned long bootTime = 0;
 
 const char* ap_ssids[] = {
@@ -34,24 +33,21 @@ inline void rotateSSID() {
 
       // Restart the Access Point with the new SSID
       WiFi.softAP(ap_ssids[current_ssid_index], ap_pass);
-      Serial.print("SSID changed to: ");
-      Serial.println(ap_ssids[current_ssid_index]);
       vTaskDelay(pdMS_TO_TICKS(150));
   }
 }
 
 inline void initFS() {
   if (!LittleFS.begin()) {
-    Serial.println("LittleFS mount failed");
+   return;
   }
   else {
-    Serial.println("LittleFS mounted");
+    return;
   }
 }
 
 inline void initWiFiAP() {
   WiFi.softAP(ap_ssids[current_ssid_index], ap_pass);
-  Serial.print("AP IP: "); Serial.println(WiFi.softAPIP());
 }
 
 inline void handleRoot() {
@@ -64,7 +60,7 @@ inline void handleRoot() {
     server.send(500, "text/plain", "index.html missing on LittleFS");
   }
 }
-void handleCss() {
+inline void handleCss() {
   File file = LittleFS.open("/style.css", "r");
   if (!file) {
     server.send(404, "text/plain", "File not found");
@@ -74,7 +70,7 @@ void handleCss() {
   file.close();
 }
 
-void handleJs() {
+inline void handleJs() {
   File file = LittleFS.open("/script.js", "r");
   if (!file) {
     server.send(404, "text/plain", "File not found");
@@ -84,7 +80,7 @@ void handleJs() {
   file.close();
 }
 
-void handleOMGGIF() {
+inline void handleOMGGIF() {
   File file = LittleFS.open("/omggif.js", "r");
   if (!file) {
     server.send(404, "text/plain", "File not found");
@@ -98,6 +94,10 @@ void handleNotFound() {
   server.send(404, "text/plain", "Not found");
 }
 
+inline void handleUptime() {
+  unsigned long uptimeSeconds = (millis() - bootTime) / 1000;
+  server.send(200, "text/plain", String(uptimeSeconds));
+}
 
 
 
