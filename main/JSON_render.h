@@ -57,12 +57,14 @@ inline bool hexToCRGB(const char* hex, CRGB& out) {
   return true;
 }
 
+// ===== LED Task =====
 inline void animateRGBRow(uint8_t inp) {
-// FastLED's fill_rainbow function is a very efficient way to create a rainbow
-  static uint8_t hue = 0;
-  fill_rainbow(RGBRow, 8, hue, 20);
-  hue += inp;
-} 
+    // FastLED's fill_rainbow function is a very efficient way to create a rainbow
+    static uint8_t hue = 0;
+    fill_rainbow(RGBRow, 8, hue, 20);
+    hue += inp;
+}
+
 
 inline void playTaskFn(void* pvParameters) {
   while (true) {
@@ -96,7 +98,7 @@ inline void handleUpload() {
   // Stopping and clearing all rendering process before working on a new one.
   playing = false;
   framesRam.clear(); // Remove all elements from the vector.
-  framesRam.shrink_to_fit();
+  framesRam.shrink_to_fit(); // Reduce capacity after clearing.
   if (server.method() != HTTP_POST) {
 	respondText(405, "Method not allowed - use POST");
 	return;
@@ -106,10 +108,11 @@ inline void handleUpload() {
   // Overwrite the saved.json file with the new animation data
   File file = LittleFS.open("/saved.json", "w");
   if (!file) {
-    return;
+    // Serial.println("Failed to open saved.json for writing");
   } else {
     file.print(body);
     file.close();
+    // Serial.println("Animation saved to /saved.json");
   }
   if (body.length() == 0) {
 	respondText(400, "Empty body");
@@ -183,32 +186,38 @@ inline void handleUpload() {
 
 inline void handleSaveFile() {
   if (!LittleFS.exists("/saved.json")) {
+    // Serial.println("No saved.json on LittleFS");
     return;
   }
   
   File f = LittleFS.open("/saved.json", "r");
   if (!f) {
+    // Serial.println("saved.json open failed");
     return; 
   }
   
   String js = f.readString();
   f.close();
+  // Serial.println(js);
 
   // Calculate the required memory size
   size_t cap = js.length() * 1.5 + 1024;
   DynamicJsonDocument doc(cap);
   
   if (deserializeJson(doc, js)) {
+    // Serial.println("saved.json parse failed");
     return;
   }
   
   if (!doc.is<JsonArray>()) {
+    // Serial.println("saved.json is not a valid JSON array");
     return;
   }
   
   JsonArray arr = doc.as<JsonArray>();
 
   if (arr.size() > MAX_FRAMES) {
+    // Serial.println("Error: Saved animation exceeds MAX_FRAMES limit.");
     return;
   }
 
@@ -221,7 +230,7 @@ inline void handleSaveFile() {
     if (!v.is<JsonArray>()) continue;
     JsonArray pix = v.as<JsonArray>();
     
-    // Check if the inner array size is correct (64 pixels)
+    // Check if the inner array size is correct (56 pixels)
     if (pix.size() != FRAME_PIXELS) continue;
     
     std::array<CRGB, FRAME_PIXELS> frameColors;
@@ -236,6 +245,7 @@ inline void handleSaveFile() {
   
   if (!tmp.empty()) {
     framesRam.swap(tmp);
+    // Serial.printf("Loaded %u frames from saved.json\n", (uint32_t)framesRam.size());
   server.send(200, "text/plain", "Animation loaded successfully!");
   }
   playing = true;
@@ -261,6 +271,7 @@ inline void handleBrightness() {
     if (brightness > 255) brightness = 255;
 
     // Set the new brightness
+    // Serial.println(brightness);
     FastLED.setBrightness(brightness);
     FastLED.show(); // Update the display immediately
 
@@ -289,7 +300,7 @@ void handleListFiles() {
 
 inline void initWebServer() {
   server.on("/", HTTP_GET, handleRoot);
-  // server.on("/", HTTP_GET, handleRoot);
+  server.on("/", HTTP_GET, handleRoot);
   server.on("/style.css", HTTP_GET, handleCss);
   server.on("/omggif.js", HTTP_GET, handleOMGGIF);
   server.on("/script.js", HTTP_GET, handleJs);
@@ -303,15 +314,18 @@ inline void initWebServer() {
   server.on("/loadLastAni", HTTP_GET, handleSaveFile);
   server.on("/listfiles", HTTP_GET, handleListFiles);
   server.begin();
+  // Serial.println("HTTP server started");
 }
 
 // ===== Load default.json =====
 inline void loadDefaultFromFS() {
   if (!LittleFS.exists("/default.json")) {
+	// Serial.println("No default.json on LittleFS");
 	return;
   }
   File f = LittleFS.open("/default.json", "r");
   if (!f) {
+	// Serial.println("default.json open failed");
 	return;
   }
   String js = f.readString();
@@ -320,6 +334,7 @@ inline void loadDefaultFromFS() {
   size_t cap = js.length() * 1.5 + 1024;
   DynamicJsonDocument doc(cap);
   if (deserializeJson(doc, js)) {
+	// Serial.println("default.json parse failed");
 	return;
   }
   if (!doc.is<JsonArray>()) return;
@@ -342,6 +357,7 @@ inline void loadDefaultFromFS() {
   }
   if (!tmp.empty()) {
 	framesRam.swap(tmp);
+	// Serial.printf("Loaded %u frames from default.json\n", (uint32_t)framesRam.size());
   playing = true;
   }
 }
