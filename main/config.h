@@ -37,13 +37,13 @@ inline void rotateSSID() {
   }
 }
 
-inline bool initFS() {
-  if (!LittleFS.begin()) {
-   return false;
-  }
-  else {
-    return true;
-  }
+inline void initFS() {
+	if (!LittleFS.begin()) {
+		Serial.println("LittleFS mount failed");
+	}
+	else {
+		Serial.println("LittleFS mounted");
+	}
 }
 
 inline void initWiFiAP() {
