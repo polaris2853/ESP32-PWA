@@ -37,12 +37,12 @@ inline void rotateSSID() {
   }
 }
 
-inline void initFS() {
+inline bool initFS() {
   if (!LittleFS.begin()) {
-   return;
+   return false;
   }
   else {
-    return;
+    return true;
   }
 }
 
