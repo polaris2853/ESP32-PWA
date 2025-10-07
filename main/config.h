@@ -4,7 +4,7 @@
 #include <WebServer.h>
 #include <LittleFS.h>
 //---------------------------------------------------
-static unsigned long bootTime = 0;
+static unsigned long bootTime = millis();
 
 const char* ap_ssids[] = {
     "ESP-WROOM-32",
