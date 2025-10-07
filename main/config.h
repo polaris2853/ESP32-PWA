@@ -95,7 +95,7 @@ inline void handleOMGGIF() {
 
 void handleNotFound() {
   server.send(404, "text/plain", "Not found");
-}
+} 
 
 inline void handleUptime() {
   unsigned long uptimeSeconds = (millis() - bootTime) / 1000;

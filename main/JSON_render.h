@@ -20,7 +20,7 @@
 
 // ===== Declarations =====
 CRGB leds[NUM_LEDS];
-volatile bool playing = false;
+volatile bool playing = true;
 volatile bool RGBEnabled = true;
 std::vector<std::array<CRGB, FRAME_PIXELS>> framesRam;
 TaskHandle_t playTask = NULL;
