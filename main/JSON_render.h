@@ -12,7 +12,7 @@
 #define MATRIX_HEIGHT 8
 #define LED_TYPE   WS2812B
 #define COLOR_ORDER GRB
-#define BRIGHTNESS 64
+#define BRIGHTNESS 32 
 
 // ===== Frame config =====
 #define FRAME_PIXELS 64
@@ -97,8 +97,10 @@ inline void respondText(int code, const char* txt) {
 inline void handleUpload() {
   // Stopping and clearing all rendering process before working on a new one.
   playing = false;
+  delay(10);
   framesRam.clear(); // Remove all elements from the vector.
   framesRam.shrink_to_fit(); // Reduce capacity after clearing.
+  delay(10);
   if (server.method() != HTTP_POST) {
 	respondText(405, "Method not allowed - use POST");
 	return;
@@ -230,7 +232,7 @@ inline void handleSaveFile() {
     if (!v.is<JsonArray>()) continue;
     JsonArray pix = v.as<JsonArray>();
     
-    // Check if the inner array size is correct (56 pixels)
+    // Check if the inner array size is correct (64 pixels)
     if (pix.size() != FRAME_PIXELS) continue;
     
     std::array<CRGB, FRAME_PIXELS> frameColors;
