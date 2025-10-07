@@ -8,48 +8,54 @@
   <script src="omggif.js"></script>
 </head>
 <body>
-  <h1 class="title">ESP-WROOM-32 Matrix Controller</h1>
-  <div id="grid"></div>
+	<h1 class="title">ESP-WROOM-32 Matrix Controller</h1>
+	<div class="stopwatch-container">
+		<span id="display">00:00:00</span>
+	</div>
+	<div id="grid"></div>
 
-  <div class="controls">
-    <label>
-      Color: <input type="color" id="color" value="#ffffff" />
-    </label>
-    <div class="swatches" id="swatches">
-      <div class="swatch" style="background: #ffffff;"></div>
-      <div class="swatch" style="background: #ff0000;"></div>
-      <div class="swatch" style="background: #00ff00;"></div>
-      <div class="swatch" style="background: #0000ff;"></div>
-      <div class="swatch" style="background: #ffff00;"></div>
-      <div class="swatch" style="background: #00ffff;"></div>
-      <div class="swatch" style="background: #ff00ff;"></div>
-      <div class="swatch" style="background: #000000;"></div>
-    </div>
-    <div>
-      <button id="prev">◀ Prev</button>
-      <span id="frameLabel">Frame 1</span>
-      <button id="next">Next ▶</button>
-      <button id="add">➕ Add</button>
-      <button id="delete">🗑️ Delete</button>
-    </div>
-    <div>
-      <button id="play">▶ Play</button>
-      <button id="stop">■ Stop</button>
-    </div>
-    <div>
-      <button id="export">Export All</button>
-      <button id="clear">Clear</button>
-      <button id="loadLastAni">Load Last Session</button>
-    </div>
-    <div>
-      <label for="brightnessSlider">Brightness:</label>
-      <input type="range" min="0" max="255" value="64" class="slider" id="brightnessSlider">
-    </div>
-    <input type="file" id="imageInput" accept="image/*">
-  </div>
+	<div class="controls">
+		<label>
+			Color: <input type="color" id="color" value="#ffffff" />
+		</label>
+		<div class="swatches" id="swatches">
+			<div class="swatch" style="background: #ffffff;"></div>
+			<div class="swatch" style="background: #ff0000;"></div>
+			<div class="swatch" style="background: #00ff00;"></div>
+			<div class="swatch" style="background: #0000ff;"></div>
+			<div class="swatch" style="background: #ffff00;"></div>
+			<div class="swatch" style="background: #00ffff;"></div>
+			<div class="swatch" style="background: #ff00ff;"></div>
+			<div class="swatch" style="background: #000000;"></div>
+		</div>
+		<div>
+			<button id="prev">◀ Prev</button>
+			<span id="frameLabel">Frame 1</span>
+			<button id="next">Next ▶</button>
+		</div>
+		<div>
+			<button id="add">➕ Add</button>
+			<button id="delete">🗑️ Delete</button>
+		</div>
+		<div>
+			<button id="play">▶ Play</button>
+			<button id="stop">■ Stop</button>
+		</div>
+		<div>
+			<button id="export">Export All</button>
+			<button id="clear">Clear</button>
+			<button id="loadLastAni">Load Last Session</button>
+		</div>
+		<div>
+			<label for="brightnessSlider">Brightness:</label>
+			<input type="range" min="0" max="255" value="64" class="slider" id="brightnessSlider">
+		</div>
+		<input type="file" id="imageInput" accept="image/*">
+	</div>
 
-  <textarea id="output" rows="8" cols="32" placeholder="Exported JSON will appear here..."></textarea>
+	<textarea id="output" rows="8" cols="32" placeholder="Exported JSON will appear here..."></textarea>
 
-  <script type="module" src="script.js"></script>
+	<script type="module" src="script.js"></script>
+	<script type="module" src="stopwatch.js"></script>
 </body>
 </html>

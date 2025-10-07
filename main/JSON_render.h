@@ -9,18 +9,19 @@
 #define LED_PIN    23
 #define NUM_LEDS   64
 #define MATRIX_WIDTH 8
-#define MATRIX_HEIGHT 7
+#define MATRIX_HEIGHT 8
 #define LED_TYPE   WS2812B
 #define COLOR_ORDER GRB
 #define BRIGHTNESS 64
 
 // ===== Frame config =====
-#define FRAME_PIXELS 56
+#define FRAME_PIXELS 64
 #define MAX_FRAMES 120
 
 // ===== Declarations =====
 CRGB leds[NUM_LEDS];
 volatile bool playing = false;
+volatile bool RGBEnabled = true;
 std::vector<std::array<CRGB, FRAME_PIXELS>> framesRam;
 TaskHandle_t playTask = NULL;
 
@@ -94,6 +95,10 @@ inline void respondText(int code, const char* txt) {
 }
 
 inline void handleUpload() {
+  // Stopping and clearing all rendering process before working on a new one.
+  playing = false;
+  framesRam.clear(); // Remove all elements from the vector.
+  framesRam.shrink_to_fit(); // Reduce capacity after clearing.
   if (server.method() != HTTP_POST) {
 	respondText(405, "Method not allowed - use POST");
 	return;
@@ -162,7 +167,15 @@ inline void handleUpload() {
 	}
 	tmp.push_back(frameColors);
   }
-
+  // Turn on RGB strip if only the whole strip is black
+  bool allBlack = true;
+  for (int i = 56; i < 64; i++) {
+    if (tmp[0][i] != CRGB::Black) {
+        allBlack = false; // Found a non-black pixel
+        break;
+    }
+  }
+  RGBEnabled = allBlack;
   noInterrupts();
   framesRam.swap(tmp);
   interrupts();
@@ -238,6 +251,11 @@ inline void handleSaveFile() {
   playing = true;
 }
 
+// inline void handleUptime() {
+//   unsigned long uptimeSeconds = (millis() - bootTime) / 1000;
+//   server.send(200, "text/plain", String(uptimeSeconds));
+// }
+
 inline void handlePlay() { playing = true; server.send(200, "text/plain", "Playing"); }
 inline void handleStop() { playing = false; server.send(200, "text/plain", "Stopped"); }
 inline void handleInfo() {
@@ -289,7 +307,7 @@ inline void initWebServer() {
   server.on("/style.css", HTTP_GET, handleCss);
   server.on("/omggif.js", HTTP_GET, handleOMGGIF);
   server.on("/script.js", HTTP_GET, handleJs);
-  
+  // server.on("/uptime", HTTP_GET, handleUptime);
   server.onNotFound(handleNotFound);
   server.on("/upload", HTTP_POST, handleUpload);
   server.on("/play", HTTP_GET, handlePlay);
@@ -343,6 +361,7 @@ inline void loadDefaultFromFS() {
   if (!tmp.empty()) {
 	framesRam.swap(tmp);
 	Serial.printf("Loaded %u frames from default.json\n", (uint32_t)framesRam.size());
+  playing = true;
   }
 }
 
@@ -354,9 +373,9 @@ inline void initLED() {
       leds[XY(x, y)] = CHSV(hue, 255, 255);
     }
   }
-
-  FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS);
+  
   FastLED.setBrightness(BRIGHTNESS);
+  FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS);
 }
 
 inline void startPlayTask() {

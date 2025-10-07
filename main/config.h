@@ -4,6 +4,9 @@
 #include <WebServer.h>
 #include <LittleFS.h>
 
+
+static unsigned long bootTime = 0;
+
 const char* ap_ssids[] = {
     "ESP-WROOM-32",
     "FBI Surveillance Van #11",
@@ -94,6 +97,7 @@ void handleOMGGIF() {
 void handleNotFound() {
   server.send(404, "text/plain", "Not found");
 }
+
 
 
 

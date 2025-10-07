@@ -9,7 +9,7 @@ let isPainting = false; // Flag to track if the mouse/touch is being held down f
 
 // --- Grid Creation and Drawing Logic ---
 const pixels = [];
-for (let i = 0; i < 56; i++) {
+for (let i = 0; i < 64; i++) {
 	const pixel = document.createElement("div");
 	pixel.classList.add("pixel");
 	pixel.dataset.index = i; // Store the pixel's index for easier reference.
@@ -86,7 +86,7 @@ function rgbToHex(rgb) {
 }
 
 // --- Frame Management ---
-let frames = [Array(56).fill("#000000")]; // An array to hold all animation frames.
+let frames = [Array(64).fill("#000000")]; // An array to hold all animation frames.
 let currentFrame = 0; // Index of the currently displayed frame.
 let interval = null; // Variable to hold the animation interval ID.
 
@@ -131,7 +131,7 @@ document.getElementById("next").addEventListener("click", () => {
 // Add frame button: adds a new, blank frame to the animation.
 document.getElementById("add").addEventListener("click", () => {
 	saveFrame();
-	frames.push(Array(56).fill("#000000")); // Add a new blank frame with 56 pixels.
+	frames.push(Array(64).fill("#000000")); // Add a new blank frame with 64 pixels.
 	currentFrame = frames.length - 1; // Set the current frame to the new one.
 	renderFrame(currentFrame);
 });
@@ -256,7 +256,7 @@ function processGifFrames(gifReader) {
 	const canvas = document.createElement('canvas');
 	const ctx = canvas.getContext('2d');
 	canvas.width = 8;
-	canvas.height = 7;
+	canvas.height = 8;
 
 	const gifWidth = gifReader.width;
 	const gifHeight = gifReader.height;
@@ -272,7 +272,7 @@ function processGifFrames(gifReader) {
 		const imageData = new ImageData(frameBuffer, gifWidth, gifHeight);
 
 		// Draw this frame onto our small 8x8 canvas, which resizes it
-		ctx.clearRect(0, 0, 8, 7); // Clear the canvas before drawing
+		ctx.clearRect(0, 0, 8, 8); // Clear the canvas before drawing
 		// The imageData object cannot be drawn directly, so we create a temporary canvas to draw it
 		const tempCanvas = document.createElement('canvas');
 		const tempCtx = tempCanvas.getContext('2d');
@@ -281,10 +281,10 @@ function processGifFrames(gifReader) {
 		tempCtx.putImageData(imageData, 0, 0);
 
 		// Now draw the tempCanvas content to our 8x8 canvas
-		ctx.drawImage(tempCanvas, 0, 0, 8, 7);
+		ctx.drawImage(tempCanvas, 0, 0, 8, 8);
 
 		// Get the pixel data from the 8x8 canvas
-		const smallImageData = ctx.getImageData(0, 0, 8, 7);
+		const smallImageData = ctx.getImageData(0, 0, 8, 8);
 		const pixelData = smallImageData.data;
 
 		const frameHexColors = [];
